@@ -1,5 +1,7 @@
 # Gswww
 
+# ⚠️ Currently still in developement with nothing to show ⚠️
+
 ## A Graphical Solution to your Wayland Wallpaper Woes
 
 ## Dependencies
