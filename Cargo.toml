@@ -2,11 +2,9 @@
 name = "gswww"
 version = "0.1.0"
 edition = "2021"
-license = "mit"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-directories = "5.0.1"
-gtk = { version = "0.6.6", package = "gtk4" }
-adw = { package = "libadwaita", version = "0.4.1" }
+adw = { package = "libadwaita", version = "0.4.3" }

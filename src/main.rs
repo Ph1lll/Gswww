@@ -1,12 +1,9 @@
-use adw::prelude::*;
-use adw::{Application, ApplicationWindow};
-use directories::UserDirs;
-use gtk::{glib, Box, Button, Image};
-use std::rc::Rc;
+use adw::gtk::{Box, Button, FileChooserAction, FileChooserNative, Orientation};
+use adw::{glib, prelude::*, Application, ApplicationWindow, Window};
 
 fn main() -> glib::ExitCode {
     let app = Application::builder()
-        .application_id("dev.dwogo.Gswww")
+        .application_id("com.github.dwogo.Gswww")
         .build();
 
     app.connect_activate(build_ui);
@@ -19,15 +16,48 @@ fn build_ui(app: &Application) {
         .margin_bottom(12)
         .margin_start(12)
         .margin_end(12)
+        .orientation(Orientation::Vertical)
         .build();
+
+    let window = ApplicationWindow::builder()
+        .application(app)
+        .title("Gswww")
+        .content(&main_box)
+        .build();
+
     // Create a button with label and margins
-    let button = Button::builder()
-        .label("Open File Dialog")
+    let dialog_button = Button::builder()
+        .label("Select Folder")
         .margin_top(12)
         .margin_bottom(12)
         .margin_start(12)
         .margin_end(12)
+        .halign(adw::gtk::Align::End)
+        .valign(adw::gtk::Align::Center)
         .build();
+
+    let dialog = FileChooserNative::new(
+        Some("Select Folder"),
+        Window::NONE,
+        FileChooserAction::SelectFolder,
+        Some("Select"),
+        Some("Cancel"),
+    );
+
+    dialog.connect_response(move |dialog, response| {
+        if response == adw::gtk::ResponseType::Accept {
+            if let Some(file) = dialog.file() {
+                if let Some(path) = file.path() {
+                    println!("Selected file: {:?}", path);
+                }
+            }
+        }
+        dialog.hide();
+    });
+
+    dialog_button.connect_clicked(move |_| {
+        dialog.show();
+    });
 
     let image_box = Box::builder()
         .margin_top(12)
@@ -36,36 +66,9 @@ fn build_ui(app: &Application) {
         .margin_end(12)
         .build();
 
-    main_box.append(&button);
+    // Append the 2 constantly seen items
+    main_box.append(&dialog_button);
     main_box.append(&image_box);
 
-    button.connect_clicked(glib::clone!(@weak image_box => move|_| button_pushed(&image_box)));
-
-    let window = Rc::new(
-        ApplicationWindow::builder()
-            .application(app)
-            .title("Gswww")
-            .content(&main_box)
-            .build(),
-    );
-
     window.present();
-}
-
-fn button_pushed(image_box: &gtk::Box) {
-    if let Some(picture_directory) = UserDirs::new() {
-        let mut directory = std::path::PathBuf::new();
-        directory.push({
-            let user_dir = format!("{:?}", picture_directory.picture_dir().unwrap());
-            format!("{}/Wallpapers", &user_dir[1..user_dir.len() - 1])
-        });
-        println! {"{}", directory.display()};
-
-        let paths = std::fs::read_dir(directory).unwrap();
-
-        for path in paths {
-            let image0 = Image::from_file(path.unwrap().path());
-            image_box.append(&image0);
-        }
-    }
 }
