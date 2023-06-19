@@ -8,3 +8,4 @@ license = "MIT"
 
 [dependencies]
 adw = { package = "libadwaita", version = "0.4.3" }
+gdk-pixbuf = "0.17.10"
