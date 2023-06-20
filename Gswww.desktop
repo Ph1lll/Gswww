@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Gswww
+Exec=gswww
+Terminal=false
+Type=Application
+Icon=Gswww
+Comment=Your Graphical Solution to your Wayland Wallpaper Woes
+Categories=Utility;
