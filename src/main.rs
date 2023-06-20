@@ -75,7 +75,7 @@ fn build_ui(app: &Application) {
                                     swww(entry.to_str().unwrap())
                                 });
                                 image.add_controller(gesture);
-                                image.set_size_request(450, 225);
+                                image.set_size_request(200, 200);
                                 image_grid.insert(&image, -1);
                             }
                         }
