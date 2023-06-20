@@ -1,6 +1,6 @@
 use adw::gtk::{
-    Box, Button, FileChooserAction, FileChooserNative, FlowBox, Image, Orientation, PolicyType,
-    ScrolledWindow,
+    Align, Box, Button, FileChooserAction, FileChooserNative, FlowBox, Image, Orientation,
+    PolicyType, ScrolledWindow,
 };
 use adw::{prelude::*, Application, ApplicationWindow, Window};
 use std::process::Command;
@@ -15,7 +15,12 @@ fn main() -> adw::glib::ExitCode {
 }
 
 fn build_ui(app: &Application) {
-    let main_box = Box::new(Orientation::Vertical, 0);
+    let content = Box::new(Orientation::Vertical, 0);
+    content.append(
+        &adw::gtk::HeaderBar::builder()
+            .title_widget(&adw::WindowTitle::new("Gswww", ""))
+            .build(),
+    );
 
     let image_grid = FlowBox::builder().column_spacing(1).row_spacing(1).build();
     let gallery = ScrolledWindow::builder()
@@ -29,23 +34,21 @@ fn build_ui(app: &Application) {
     let window = ApplicationWindow::builder()
         .application(app)
         .title("Gswww")
-        .content(&main_box)
+        .content(&content)
         .build();
 
-    // Create a button with label and margins
+    // Button to open dialog
     let dialog_button = Button::builder()
         .label("Select Folder")
         .margin_top(12)
         .margin_bottom(12)
         .margin_start(12)
         .margin_end(12)
-        .halign(adw::gtk::Align::End)
-        .valign(adw::gtk::Align::Center)
+        .halign(Align::Start)
         .build();
 
-    // Append the 2 constantly seen items
-    main_box.append(&dialog_button);
-    main_box.append(&gallery);
+    content.append(&gallery);
+    content.append(&dialog_button);
 
     let dialog = FileChooserNative::new(
         Some("Select Folder"),
