@@ -22,8 +22,7 @@ It works, but is super unstable
     + webp
     + pnm
     + bmp
-    + farbfeld
-    + (The last 3 are not supported in Gswww and will not display)
+    + farbfeld (Don't know what this is so I'm not going to include it)
 + Clear the screen with a rrggbb colour
 + Smooth transition effect when you switch images
 + Doing it all without having to pkill the daemon
