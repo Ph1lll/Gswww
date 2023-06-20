@@ -1,6 +1,8 @@
 # Gswww
 
-# ⚠️ Currently still in developement with nothing to show ⚠️
+# ⚠️ Currently still in developement⚠️
+It works, but is super unstable
+e.g. try to add another folder and the whole thing crashes
 
 ## A Graphical Solution to your Wayland Wallpaper Woes
 
