@@ -1,9 +1,8 @@
 use adw::gtk::{
-    Align, Box, Button, FileChooserAction, FileChooserNative, FlowBox, Image, Orientation,
-    PolicyType, ScrolledWindow,
+    Align, Box, Button, DropDown, FileChooserAction, FileChooserNative, FlowBox, Image,
+    Orientation, PolicyType, ScrolledWindow,
 };
 use adw::{prelude::*, Application, ApplicationWindow, Window};
-use std::process::Command;
 
 fn main() -> adw::glib::ExitCode {
     let app = Application::builder()
@@ -47,8 +46,22 @@ fn build_ui(app: &Application) {
         .halign(Align::Start)
         .build();
 
+    // Dropdown for transition types
+    let transition_types = DropDown::builder()
+        .margin_top(12)
+        .margin_bottom(12)
+        .margin_start(12)
+        .margin_end(12)
+        .halign(Align::End)
+        .build();
+
+    // Box for all options and buttons
+    let option_box = Box::new(Orientation::Horizontal, 2);
+    option_box.append(&dialog_button);
+    option_box.append(&transition_types);
+
     content.append(&gallery);
-    content.append(&dialog_button);
+    content.append(&option_box);
 
     let dialog = FileChooserNative::new(
         Some("Select Folder"),
@@ -66,9 +79,9 @@ fn build_ui(app: &Application) {
                     match search_folder(folder_path.to_str().unwrap()) {
                         Ok(entries) => {
                             for entry in entries {
-                                let pixbuf = gdk_pixbuf::Pixbuf::from_file(entry.to_str().unwrap())
-                                    .expect("Failed to load image");
-                                let image = Image::from_pixbuf(Some(&pixbuf));
+                                // let pixbuf = gdk_pixbuf::Pixbuf::from_file(entry.to_str().unwrap())
+                                // .expect("Failed to load image");
+                                let image = Image::from_file(&entry);
                                 let gesture = adw::gtk::GestureClick::new();
                                 gesture.set_button(adw::gtk::gdk::ffi::GDK_BUTTON_PRIMARY as u32);
                                 gesture.connect_pressed(move |_, _, _, _| {
@@ -98,7 +111,7 @@ fn build_ui(app: &Application) {
 }
 
 fn swww(file: &str) {
-    Command::new("swww")
+    std::process::Command::new("swww")
         .args(["img", file])
         .spawn()
         .expect("Failed to change background");
