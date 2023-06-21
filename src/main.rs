@@ -1,10 +1,10 @@
 use adw::gtk::{
     Align, Box, Button, DropDown, FileChooserAction, FileChooserNative, FlowBox, Image,
-    Orientation, PolicyType, ScrolledWindow,
+    Orientation, PolicyType, ScrolledWindow, StringList,
 };
-use adw::{prelude::*, Application, ApplicationWindow, Window};
+use adw::{glib, prelude::*, Application, ApplicationWindow, Window};
 
-fn main() -> adw::glib::ExitCode {
+fn main() -> glib::ExitCode {
     let app = Application::builder()
         .application_id("com.github.dwogo.Gswww")
         .build();
@@ -46,8 +46,15 @@ fn build_ui(app: &Application) {
         .halign(Align::Start)
         .build();
 
+    // Options for the dropdown
+    let transition_options = [
+        "simple", "left", "right", "top", "bottom", "wipe", "grow", "center", "any", "outer",
+        "random",
+    ];
+
     // Dropdown for transition types
     let transition_types = DropDown::builder()
+        .model(&StringList::new(&transition_options))
         .margin_top(12)
         .margin_bottom(12)
         .margin_start(12)
@@ -56,7 +63,7 @@ fn build_ui(app: &Application) {
         .build();
 
     // Box for all options and buttons
-    let option_box = Box::new(Orientation::Horizontal, 2);
+    let option_box = Box::new(Orientation::Horizontal, 0);
     option_box.append(&dialog_button);
     option_box.append(&transition_types);
 
@@ -79,14 +86,18 @@ fn build_ui(app: &Application) {
                     match search_folder(folder_path.to_str().unwrap()) {
                         Ok(entries) => {
                             for entry in entries {
-                                // let pixbuf = gdk_pixbuf::Pixbuf::from_file(entry.to_str().unwrap())
-                                // .expect("Failed to load image");
                                 let image = Image::from_file(&entry);
                                 let gesture = adw::gtk::GestureClick::new();
                                 gesture.set_button(adw::gtk::gdk::ffi::GDK_BUTTON_PRIMARY as u32);
-                                gesture.connect_pressed(move |_, _, _, _| {
-                                    swww(entry.to_str().unwrap())
-                                });
+                                gesture.connect_pressed(
+                                    glib::clone!(@weak transition_types => move |_, _, _, _| {
+                                        swww(
+                                            entry.to_str().unwrap(),
+                                            &transition_types,
+                                            &transition_options,
+                                        )
+                                    }),
+                                );
                                 image.add_controller(gesture);
                                 image.set_size_request(200, 200);
                                 image_grid.insert(&image, -1);
@@ -110,9 +121,9 @@ fn build_ui(app: &Application) {
     window.present();
 }
 
-fn swww(file: &str) {
+fn swww(file: &str, transition: &DropDown, options: &[&str]) {
     std::process::Command::new("swww")
-        .args(["img", file])
+        .args(["img", "-t", options[transition.selected() as usize], file])
         .spawn()
         .expect("Failed to change background");
 }
