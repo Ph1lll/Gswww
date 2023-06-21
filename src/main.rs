@@ -33,6 +33,8 @@ fn build_ui(app: &Application) {
     let window = ApplicationWindow::builder()
         .application(app)
         .title("Gswww")
+        .default_width(900)
+        .default_height(600)
         .content(&content)
         .build();
 
