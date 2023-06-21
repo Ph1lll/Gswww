@@ -50,8 +50,8 @@ fn build_ui(app: &Application) {
 
     // Options for the dropdown
     let transition_options = [
-        "simple", "left", "right", "top", "bottom", "wipe", "grow", "center", "any", "outer",
-        "random",
+        "simple", "left", "right", "top", "bottom", "wipe", "wave", "grow", "center", "any",
+        "outer", "random",
     ];
 
     // Dropdown for transition types
