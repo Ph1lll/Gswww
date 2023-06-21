@@ -132,7 +132,9 @@ fn swww(file: &str, transition: &DropDown, options: &[&str]) {
 
 fn search_folder(folder_path: &str) -> Result<Vec<std::path::PathBuf>, std::io::Error> {
     // Specify the file extensions you want to search for
-    let file_extensions = vec!["png", "jpg", "gif", "pnm", "tga", "tiff", "webp", "bmp"];
+    let file_extensions = vec![
+        "png", "jpg", "jpeg", "gif", "pnm", "tga", "tiff", "webp", "bmp",
+    ];
 
     let mut entries = Vec::new();
 
