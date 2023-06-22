@@ -1,15 +1,27 @@
-# Gswww
-
-# A Graphical Solution to your Wayland Wallpaper Woes
-## ⚠️ It's usable, but expect some major changes⚠️
+# a Graphical Solution to your Wayland Wallpaper Woes
+### ⚠️ It's usable, but expect some major changes⚠️
 
 ## Dependencies
 + [swww](https://github.com/Horus645/swww)
-+ Gtk4
++ libadwaita/Gtk4
 + Up to date rustc compiler and cargo
 + webp-pixbuf-loader (optional: to view .webp images)
 
-## Features of swww
+## Installion
+To build, clone this repo and inside run:
+```
+cargo build --release
+```
+
+Then put the `./target/release/gswww`  into your path,
+and copy: 
++ `Gswww.desktop` to `~/.local/share/applications/`
++ `Gswww.png` to `~/.icons/`
+
+Voilà, now you can graphically change your wallpaper using the awesome swww deamon.
+**Just make sure you actually have the daemon running otherwise it's not going to work** 
+
+## Features of swww (The daemon)
 + Display animated gifs as your wallpaper
 + Display images in any format (Some of these I didn't know existed)
     + jpeg
@@ -20,7 +32,7 @@
     + webp
     + pnm
     + bmp
-    + farbfeld (Don't know what this is so I'm not going to include it)
+    + farbfeld (Not included in Gswww)
 + Clear the screen with a rrggbb colour
 + Smooth transition effect when you switch images
 + Doing it all without having to pkill the daemon
