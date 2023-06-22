@@ -1,9 +1,7 @@
 # Gswww
 
-# ⚠️ Currently still in developement⚠️
-It works, but is super unstable
-
-## A Graphical Solution to your Wayland Wallpaper Woes
+# A Graphical Solution to your Wayland Wallpaper Woes
+## ⚠️ It's usable, but expect some major changes⚠️
 
 ## Dependencies
 + [swww](https://github.com/Horus645/swww)

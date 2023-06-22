@@ -5,9 +5,7 @@ use adw::gtk::{
 use adw::{glib, prelude::*, Application, ApplicationWindow, Window};
 
 fn main() -> glib::ExitCode {
-    let app = Application::builder()
-        .application_id("com.github.dwogo.Gswww")
-        .build();
+    let app = Application::builder().application_id("Gswww").build();
 
     app.connect_activate(build_ui);
     app.run()
