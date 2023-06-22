@@ -19,6 +19,8 @@ and copy:
 + `Gswww.png` to `~/.icons/`
 
 Voilà, now you can graphically change your wallpaper using the awesome swww deamon.
+Just select the folder that holds your wallpapers, and click on the previews.
+
 **Just make sure you actually have the daemon running otherwise it's not going to work** 
 
 ## Features of swww (The daemon)
