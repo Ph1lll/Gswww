@@ -8,12 +8,16 @@
 + webp-pixbuf-loader (optional: to view .webp images)
 
 ## Installion
-To build, clone this repo and inside run:
+To build, clone this repo:
+```
+git clone https://github.com/Dwogo/Gswww.git    
+```
+and inside run:
 ```
 cargo build --release
 ```
 
-Then put the `./target/release/gswww`  into your path,
+Then put `./target/release/`  into your path,
 and copy: 
 + `Gswww.desktop` to `~/.local/share/applications/`
 + `Gswww.png` to `~/.icons/`
