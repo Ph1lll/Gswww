@@ -3,14 +3,14 @@
 
 ## Dependencies
 + [swww](https://github.com/Horus645/swww)
-+ libadwaita/Gtk4
++ libadwaita
 + Up to date rustc compiler and cargo
 + webp-pixbuf-loader (optional: to view .webp images)
 
 ## Installion
 To build, clone this repo:
 ```
-git clone https://github.com/Dwogo/Gswww.git    
+git clone https://github.com/Dwogo/Gswww.git && cd Gswww/
 ```
 and inside run:
 ```
@@ -45,5 +45,3 @@ Just select the folder that holds your wallpapers, and click on the previews.
 
 ## Big Thanks
 Thanks goes to [Horus645](https://github.com/Horus645) for making [swww](https://github.com/Horus645/swww)
-
-
