@@ -1,8 +1,8 @@
-use adw::gtk::{
+use gtk::{glib, prelude::*, Application, ApplicationWindow, Window};
+use gtk::{
     Align, Box, Button, DropDown, FileChooserAction, FileChooserNative, FlowBox, Image,
     Orientation, PolicyType, ScrolledWindow, StringList,
 };
-use adw::{glib, prelude::*, Application, ApplicationWindow, Window};
 
 fn main() -> glib::ExitCode {
     let app = Application::builder().application_id("Gswww").build();
@@ -13,11 +13,7 @@ fn main() -> glib::ExitCode {
 
 fn build_ui(app: &Application) {
     let content = Box::new(Orientation::Vertical, 0);
-    content.append(
-        &adw::gtk::HeaderBar::builder()
-            .title_widget(&adw::WindowTitle::new("Gswww", ""))
-            .build(),
-    );
+    content.append(&gtk::HeaderBar::new());
 
     let image_grid = FlowBox::builder().column_spacing(1).row_spacing(1).build();
     let gallery = ScrolledWindow::builder()
@@ -33,7 +29,7 @@ fn build_ui(app: &Application) {
         .title("Gswww")
         .default_width(900)
         .default_height(600)
-        .content(&content)
+        .child(&content)
         .build();
 
     // Button to open dialog
@@ -80,15 +76,15 @@ fn build_ui(app: &Application) {
     dialog.set_transient_for(Some(&window));
 
     dialog.connect_response(move |dialog, response| {
-        if response == adw::gtk::ResponseType::Accept {
+        if response == gtk::ResponseType::Accept {
             if let Some(path) = dialog.file() {
                 if let Some(folder_path) = path.path() {
                     match search_folder(folder_path.to_str().unwrap()) {
                         Ok(entries) => {
                             for entry in entries {
                                 let image = Image::from_file(&entry);
-                                let gesture = adw::gtk::GestureClick::new();
-                                gesture.set_button(adw::gtk::gdk::ffi::GDK_BUTTON_PRIMARY as u32);
+                                let gesture = gtk::GestureClick::new();
+                                gesture.set_button(gtk::gdk::ffi::GDK_BUTTON_PRIMARY as u32);
                                 gesture.connect_pressed(
                                     glib::clone!(@weak transition_types => move |_, _, _, _| {
                                         swww(

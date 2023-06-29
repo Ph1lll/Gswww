@@ -6,7 +6,7 @@
 
 ## Dependencies
 + [swww](https://github.com/Horus645/swww)
-+ libadwaita
++ GTK4
 + Up to date rustc compiler and cargo
 + webp-pixbuf-loader (optional: to view .webp images)
 
