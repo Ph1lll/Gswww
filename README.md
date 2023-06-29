@@ -1,6 +1,9 @@
 # a Graphical Solution to your Wayland Wallpaper Woes
 ### ⚠️ It's usable, but expect some major changes⚠️
 
+![gif demo](../assets/Gif.gif)
+![random demo](../assets/switch.gif)
+
 ## Dependencies
 + [swww](https://github.com/Horus645/swww)
 + libadwaita
