@@ -13,7 +13,7 @@
 ## Installion
 To build, clone this repo:
 ```
-git clone https://github.com/Dwogo/Gswww.git && cd Gswww/
+git clone https://github.com/Ph1lll/Gswww.git && cd Gswww/
 ```
 and inside run:
 ```
@@ -22,8 +22,8 @@ cargo build --release
 
 Then put `./target/release/`  into your path,
 and copy: 
-+ `Gswww.desktop` to `~/.local/share/applications/`
-+ `Gswww.png` to `~/.icons/`
++ `cp assets/intergration/Gswww.desktop ~/.local/share/applications/`
++ `cp assets/intergration/Gswww.png ~/.icons/`
 
 Voilà, now you can graphically change your wallpaper using the awesome swww deamon.
 Just select the folder that holds your wallpapers, and click on the previews.
@@ -41,7 +41,7 @@ Just select the folder that holds your wallpapers, and click on the previews.
     + webp
     + pnm
     + bmp
-    + farbfeld (Not included in Gswww)
+    + farbfeld (Not supported in Gswww)
 + Clear the screen with a rrggbb colour
 + Smooth transition effect when you switch images
 + Doing it all without having to pkill the daemon
