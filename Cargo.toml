@@ -1,13 +1,23 @@
 [package]
 name = "gswww"
 version = "1.1.0"
-authors = ["Ph1ll"]
-description = "a Graphical Solution to your Wayland Wallpaper Woes"
+authors = ["Phillip Davies <philliptdavies@gmail.com>"]
+description = "A Graphical Solution to your Wayland Wallpaper Woes"
 edition = "2021"
-license = "MIT"
-readme="README.md"
+license = "GPL-3.0-or-later"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.release]
+debug = 0
+lto = true
+opt-level = 3
+codegen-units = 1
+panic = "abort" # stack unwinding is mostly useless since the user won't be able to see it during normal operation
+strip = true
+
+[profile.bench]
+lto = "thin"
+debug = 1
+strip = false
 
 [dependencies]
 gtk = { version = "0.6.6", package = "gtk4" }
