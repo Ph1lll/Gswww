@@ -32,6 +32,11 @@ Just select the folder that holds your wallpapers, and click on the previews.
 
 **Just make sure you actually have the daemon running otherwise it's not going to work** 
 
+E.g. Hyprland
+```
+exec-once = swww init
+```
+
 ## Features of swww (The daemon)
 + Display animated gifs as your wallpaper
 + Display images in any format (Some of these I didn't know existed)
