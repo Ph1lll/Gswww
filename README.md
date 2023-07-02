@@ -1,4 +1,4 @@
-# a Graphical Solution to your Wayland Wallpaper Woes
+# A Graphical Solution to your Wayland Wallpaper Woes
 ### ⚠️ It's usable, but expect some major changes⚠️
 
 ![gif demo](assets/Gif.gif)
@@ -10,7 +10,10 @@
 + Up to date rustc compiler and cargo
 + webp-pixbuf-loader (optional: to view .webp images)
 
-## Installion
+## Build
+### Automatic
++ [AUR](https://aur.archlinux.org/packages/gswww-git)
+### Manual
 To build, clone this repo:
 ```
 git clone https://github.com/Ph1lll/Gswww.git && cd Gswww/
@@ -34,6 +37,7 @@ Just select the folder that holds your wallpapers, and click on the previews.
 
 E.g. Hyprland
 ```
+# ~/.config/hypr/hyprland.conf
 exec-once = swww init
 ```
 
