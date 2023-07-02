@@ -26,8 +26,8 @@ cargo build --release
 Then put `./target/release/`  into your path,
 and copy Gswww.desktop and Gswww.png with these commands: 
  ```
-cp assets/intergration/Gswww.desktop ~/.local/share/applications/
-cp assets/intergration/Gswww.png ~/.icons/
+cp assets/intergration/com.github.Ph1lll.Gswww.desktop ~/.local/share/applications/
+cp assets/intergration/com.github.Ph1lll.Gswww.png ~/.icons/
 ```
 
 *Voilà,* now you can graphically change your wallpaper using the awesome swww deamon.
