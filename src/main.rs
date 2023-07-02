@@ -5,7 +5,9 @@ use gtk::{
 };
 
 fn main() -> glib::ExitCode {
-    let app = Application::builder().application_id("Gswww").build();
+    let app = Application::builder()
+        .application_id("com.github.Ph1lll.Gswww")
+        .build();
 
     app.connect_activate(build_ui);
     app.run()
