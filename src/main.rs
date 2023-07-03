@@ -3,6 +3,8 @@ use gtk::{
     Align, Box, Button, DropDown, FileChooserAction, FileChooserNative, FlowBox, Image,
     Orientation, PolicyType, ScrolledWindow, StringList,
 };
+use rayon::prelude::*;
+use std::sync::{Arc, Mutex};
 
 fn main() -> glib::ExitCode {
     let app = Application::builder()
@@ -132,28 +134,35 @@ fn search_folder(folder_path: &str) -> Result<Vec<std::path::PathBuf>, std::io::
         "png", "jpg", "jpeg", "gif", "pnm", "tga", "tiff", "webp", "bmp",
     ];
 
-    let mut entries = Vec::new();
+    let entries = Arc::new(Mutex::new(Vec::new()));
 
     // Read the contents of the folder
     let folder_entries = std::fs::read_dir(folder_path)?;
 
-    for entry_result in folder_entries {
-        let entry = entry_result?;
-        let entry_path = entry.path();
+    folder_entries.par_bridge().for_each(|entry_result| {
+        if let Ok(entry) = entry_result {
+            let entry_path = entry.path();
 
-        // Check if the entry is a file or a subfolder
-        if entry_path.is_file() {
-            if let Some(extension) = entry_path.extension() {
-                if file_extensions.iter().any(|&ext| ext == extension) {
-                    entries.push(entry_path.clone());
+            // Check if the entry is a file or a subfolder
+            if entry_path.is_file() {
+                if let Some(extension) = entry_path.extension() {
+                    if file_extensions.iter().any(|&ext| ext == extension) {
+                        let mut locked_entries = entries.lock().unwrap();
+                        locked_entries.push(entry_path.clone());
+                    }
+                }
+            } else if entry_path.is_dir() {
+                // Recursively search subfolders
+                if let Ok(subfolder_entries) = search_folder(entry_path.to_str().unwrap()) {
+                    let mut locked_entries = entries.lock().unwrap();
+                    locked_entries.extend(subfolder_entries);
                 }
             }
-        } else if entry_path.is_dir() {
-            // Recursively search subfolders
-            let subfolder_entries = search_folder(entry_path.to_str().unwrap())?;
-            entries.extend(subfolder_entries);
         }
-    }
+    });
 
-    Ok(entries)
+    // Retrieve the results from the Arc<Mutex<Vec<PathBuf>>>
+    let result = entries.lock().unwrap();
+
+    Ok(result.clone())
 }
