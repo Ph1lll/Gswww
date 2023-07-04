@@ -1,10 +1,15 @@
 use gtk::{glib, prelude::*, Application, ApplicationWindow, Window};
 use gtk::{
     Align, Box, Button, DropDown, FileChooserAction, FileChooserNative, FlowBox, Image,
-    Orientation, PolicyType, ScrolledWindow, StringList,
+    Orientation, ScrolledWindow, StringList,
 };
 use rayon::prelude::*;
-use std::sync::{Arc, Mutex};
+
+// Options for the dropdown
+const TRANSISTION_OPTIONS: [&str; 12] = [
+    "simple", "left", "right", "top", "bottom", "wipe", "wave", "grow", "center", "any", "outer",
+    "random",
+];
 
 fn main() -> glib::ExitCode {
     let app = Application::builder()
@@ -19,13 +24,10 @@ fn build_ui(app: &Application) {
     let content = Box::new(Orientation::Vertical, 0);
     content.append(&gtk::HeaderBar::new());
 
-    let image_grid = FlowBox::builder().column_spacing(1).row_spacing(1).build();
-    let gallery = ScrolledWindow::builder()
+    let image_grid = FlowBox::new(); // Allows to change the rows and columns depending on the size of the window
+    let gallery = ScrolledWindow::builder() // Allows to scroll through the wallpapers
         .child(&image_grid)
-        .hexpand(true)
         .vexpand(true)
-        .hscrollbar_policy(PolicyType::Automatic)
-        .vscrollbar_policy(PolicyType::Automatic)
         .build();
 
     let window = ApplicationWindow::builder()
@@ -46,15 +48,9 @@ fn build_ui(app: &Application) {
         .halign(Align::Start)
         .build();
 
-    // Options for the dropdown
-    let transition_options = [
-        "simple", "left", "right", "top", "bottom", "wipe", "wave", "grow", "center", "any",
-        "outer", "random",
-    ];
-
     // Dropdown for transition types
     let transition_types = DropDown::builder()
-        .model(&StringList::new(&transition_options))
+        .model(&StringList::new(&TRANSISTION_OPTIONS))
         .margin_top(12)
         .margin_bottom(12)
         .margin_start(12)
@@ -67,6 +63,7 @@ fn build_ui(app: &Application) {
     option_box.append(&dialog_button);
     option_box.append(&transition_types);
 
+    // Add the main boxes of content
     content.append(&gallery);
     content.append(&option_box);
 
@@ -79,38 +76,46 @@ fn build_ui(app: &Application) {
     );
     dialog.set_transient_for(Some(&window));
 
+    // When you Select Folder
     dialog.connect_response(move |dialog, response| {
+        // Hide the dialog
+        dialog.hide();
+
+        // If folder selected
         if response == gtk::ResponseType::Accept {
-            if let Some(path) = dialog.file() {
-                if let Some(folder_path) = path.path() {
-                    match search_folder(folder_path.to_str().unwrap()) {
-                        Ok(entries) => {
-                            for entry in entries {
-                                let image = Image::from_file(&entry);
-                                let gesture = gtk::GestureClick::new();
-                                gesture.set_button(gtk::gdk::ffi::GDK_BUTTON_PRIMARY as u32);
-                                gesture.connect_pressed(
-                                    glib::clone!(@weak transition_types => move |_, _, _, _| {
-                                        swww(
-                                            entry.to_str().unwrap(),
-                                            &transition_types,
-                                            &transition_options,
-                                        )
-                                    }),
-                                );
-                                image.add_controller(gesture);
-                                image.set_size_request(200, 200);
-                                image_grid.insert(&image, -1);
-                            }
-                        }
-                        Err(err) => {
-                            eprintln!("Error: {}", err);
-                        }
+            // Get the path to folder
+            let folder_path = dialog.file().unwrap();
+            let folder_path = folder_path.path().unwrap();
+            match search_folder(folder_path.to_str().unwrap()) {
+                // Use those paths to create images
+                Ok(entries) => {
+                    for entry in entries {
+                        let image = Image::from_file(&entry);
+                        image.set_size_request(200, 200);
+
+                        // Clicking on image will send a command to swww
+                        let gesture = gtk::GestureClick::builder()
+                            .button(gtk::gdk::ffi::GDK_BUTTON_PRIMARY as u32) // Left Click
+                            .build();
+                        gesture.connect_pressed(
+                            glib::clone!(@weak transition_types => move |_, _, _, _| {
+                                swww(
+                                    entry.to_str().unwrap(),    // Path to file
+                                    &transition_types,          // Dropdown selection
+                                    &TRANSISTION_OPTIONS,       // Options to transistion
+                                )
+                            }),
+                        );
+
+                        image.add_controller(gesture); // Make sure the command is sent
+                        image_grid.insert(&image, -1); // Add image to grid
                     }
                 }
+                // Just in case
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                }
             }
-
-            dialog.hide();
         }
     });
 
@@ -121,6 +126,7 @@ fn build_ui(app: &Application) {
     window.present();
 }
 
+// Send command to swww
 fn swww(file: &str, transition: &DropDown, options: &[&str]) {
     std::process::Command::new("swww")
         .args(["img", "-t", options[transition.selected() as usize], file])
@@ -129,27 +135,29 @@ fn swww(file: &str, transition: &DropDown, options: &[&str]) {
 }
 
 fn search_folder(folder_path: &str) -> Result<Vec<std::path::PathBuf>, std::io::Error> {
-    // Specify the file extensions you want to search for
+    // List of file extensions to search for
     let file_extensions = vec![
         "png", "jpg", "jpeg", "gif", "pnm", "tga", "tiff", "webp", "bmp",
     ];
 
-    let entries = Arc::new(Mutex::new(Vec::new()));
+    let entries = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
 
     // Read the contents of the folder
     let folder_entries = std::fs::read_dir(folder_path)?;
 
+    // Parallelize the search of image files (Slight HACK)
     folder_entries.par_bridge().for_each(|entry_result| {
         if let Ok(entry) = entry_result {
             let entry_path = entry.path();
 
             // Check if the entry is a file or a subfolder
             if entry_path.is_file() {
-                if let Some(extension) = entry_path.extension() {
-                    if file_extensions.iter().any(|&ext| ext == extension) {
-                        let mut locked_entries = entries.lock().unwrap();
-                        locked_entries.push(entry_path.clone());
-                    }
+                if file_extensions
+                    .iter()
+                    .any(|&ext| ext == entry_path.extension().unwrap())
+                {
+                    let mut locked_entries = entries.lock().unwrap();
+                    locked_entries.push(entry_path);
                 }
             } else if entry_path.is_dir() {
                 // Recursively search subfolders
@@ -161,8 +169,7 @@ fn search_folder(folder_path: &str) -> Result<Vec<std::path::PathBuf>, std::io::
         }
     });
 
-    // Retrieve the results from the Arc<Mutex<Vec<PathBuf>>>
+    // Retrieve and return the results from the Arc<Mutex<Vec<PathBuf>>>
     let result = entries.lock().unwrap();
-
     Ok(result.clone())
 }
