@@ -6,12 +6,13 @@ description = "A Graphical Solution to your Wayland Wallpaper Woes"
 edition = "2021"
 license = "GPL-3.0-or-later"
 
+# Thx Horus645 for these profiles
 [profile.release]
 debug = 0
 lto = true
 opt-level = 3
 codegen-units = 1
-panic = "abort" # stack unwinding is mostly useless since the user won't be able to see it during normal operation
+panic = "abort"
 strip = true
 
 [profile.bench]
@@ -20,5 +21,8 @@ debug = 1
 strip = false
 
 [dependencies]
-gtk = { version = "0.6.6", package = "gtk4" }
+directories = "5.0.1"
+gtk = { version = "0.6.6", package = "gtk4", features = ["v4_10"] }
 rayon = "1.7.0"
+ron = "0.8.0"
+serde = { version = "1.0.168", features = ["derive"] }
