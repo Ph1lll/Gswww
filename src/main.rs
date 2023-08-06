@@ -1,7 +1,9 @@
-use gtk::{glib, prelude::*, Application, ApplicationWindow};
 use gtk::{
-    Align, Box, Button, DropDown, FileDialog, FlowBox, Image, Orientation, ScrolledWindow,
-    StringList,
+    gio::File,
+    glib::{self, clone, Error, ExitCode, MainContext},
+    prelude::*,
+    Align, Application, ApplicationWindow, Box, Button, DropDown, FileDialog, FlowBox, HeaderBar,
+    Orientation, ScrolledWindow, StringList, Window,
 };
 use std::rc::Rc;
 
@@ -14,10 +16,8 @@ const TRANSISTION_OPTIONS: [&str; 12] = [
     "random",
 ];
 
-fn main() -> glib::ExitCode {
-    // Experimental folder storage
-    // config::config();
-
+fn main() -> ExitCode {
+    // Create the GTK app
     let app = Application::builder()
         .application_id("com.github.Ph1lll.Gswww")
         .build();
@@ -28,7 +28,6 @@ fn main() -> glib::ExitCode {
 
 fn build_ui(app: &Application) {
     let content = Box::new(Orientation::Vertical, 0);
-    content.append(&gtk::HeaderBar::new());
 
     let image_grid = FlowBox::new(); // Allows to change the rows and columns depending on the size of the window
     let gallery = ScrolledWindow::builder() // Allows to scroll through the wallpapers
@@ -72,57 +71,28 @@ fn build_ui(app: &Application) {
     option_box.append(&transition_types);
 
     // Add the main boxes of content
+    content.append(&HeaderBar::new());
     content.append(&gallery);
     content.append(&option_box);
 
-    dialog_button.connect_clicked(glib::clone!(@strong window => move |_| {
-        let folder_location = glib::MainContext::default().spawn_local(file_dialog(Rc::clone(&window)));
-        glib::MainContext::default().spawn_local(glib::clone!(@weak transition_types, @weak image_grid => async move {
+    // Open the file dialog
+    dialog_button.connect_clicked(clone!(@strong window => move |_| {
+        let folder_location = MainContext::default().spawn_local(file_dialog(Rc::clone(&window)));
+        MainContext::default().spawn_local(clone!(@weak transition_types, @weak image_grid => async move {
+            // I want the location of the folder
             let folder_location = match folder_location.await {
                 Ok(file) => file.unwrap().path().unwrap().to_str().map(|s| s.to_string()),
                 Err(_) => None,
             };
-
-        match utils::search_folder(&folder_location.unwrap()) {
-                // Use those paths to create images
-                Ok(entries) => {
-                    for entry in entries {
-                        let image = Image::from_file(&entry);
-                        image.set_size_request(200, 200);
-
-                        // Clicking on image will send a command to swww
-                        let gesture = gtk::GestureClick::builder()
-                            .button(gtk::gdk::ffi::GDK_BUTTON_PRIMARY as u32) // Left Click
-                            .build();
-                        gesture.connect_pressed(
-                            glib::clone!(@weak transition_types => move |_, _, _, _| {
-                                utils::swww(
-                                    entry.to_str().unwrap(),    // Path to file
-                                    &transition_types,          // Dropdown selection
-                                    &TRANSISTION_OPTIONS        // List of options
-                                )
-                            }),
-                        );
-
-                        image.add_controller(gesture); // Make sure the command is sent
-                        image_grid.insert(&image, -1); // Add image to grid
-                    }
-                }
-                // Just in case
-                Err(err) => {
-                    eprintln!("Error: {}", err);
-                }
-            }
-
+            // Add images to gallery
+            utils::add_images(&folder_location.unwrap(), &transition_types, &image_grid, &TRANSISTION_OPTIONS);
         }));
     }));
 
     window.present();
 }
 
-async fn file_dialog<W: IsA<gtk::Window>>(
-    window: Rc<W>,
-) -> Result<gtk::gio::File, gtk::glib::Error> {
-    let folder_dialog = FileDialog::new();
-    folder_dialog.select_folder_future(Some(&*window)).await
+// Dialog to get folder location
+async fn file_dialog<W: IsA<Window>>(window: Rc<W>) -> Result<File, Error> {
+    FileDialog::new().select_folder_future(Some(&*window)).await
 }
