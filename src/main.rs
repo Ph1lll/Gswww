@@ -17,6 +17,8 @@ const TRANSISTION_OPTIONS: [&str; 12] = [
 ];
 
 fn main() -> ExitCode {
+    // Create config directory if not added
+    config::config_path();
     // Create the GTK app
     let app = Application::builder()
         .application_id("com.github.Ph1lll.Gswww")
