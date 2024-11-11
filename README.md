@@ -1,11 +1,10 @@
 # A Graphical Solution to your Wayland Wallpaper Woes
-### ⚠️ It's usable, but expect some major changes⚠️
 
 ![gif demo](assets/Gif.gif)
 ![random demo](assets/switch.gif)
 
 ## Dependencies
-+ [swww](https://github.com/Horus645/swww)
++ [swww](https://github.com/LGFae/swww)
 + GTK4
 + Up to date rustc compiler and cargo
 + webp-pixbuf-loader (optional: to view .webp images)
@@ -38,7 +37,7 @@ Just select the folder that holds your wallpapers, and click on the previews.
 E.g. Hyprland
 ```
 # ~/.config/hypr/hyprland.conf
-exec-once = swww init
+exec-once = swww-daemon
 ```
 
 ## Features of swww (The daemon)
@@ -58,4 +57,4 @@ exec-once = swww init
 + Doing it all without having to pkill the daemon
 
 ## Big Thanks
-Thanks goes to [Horus645](https://github.com/Horus645) for making [swww](https://github.com/Horus645/swww)
+Thanks goes to [LGFae](https://github.com/LGFae) for making [swww](https://github.com/LGFae/swww)

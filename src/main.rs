@@ -12,9 +12,8 @@ mod utils;
 
 // Options for the dropdown
 const TRANSISTION_OPTIONS: [&str; 12] = [
-    "simple", "left", "right", "top", "bottom", "wipe", "wave", "grow", "center", "any", "outer",
-    "random",
-];
+    "random","simple", "left", "right", "top", "bottom", "wipe", "wave", "grow", "center", "any", "outer",
+    ];
 
 fn main() -> ExitCode {
     // Create config directory if not added
