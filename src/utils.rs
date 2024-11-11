@@ -1,12 +1,21 @@
 use directories::ProjectDirs;
-use gtk::{gdk::ffi::GDK_BUTTON_PRIMARY, glib, prelude::*, DropDown, FlowBox, GestureClick, Image};
 use rayon::prelude::*;
+use walkdir::WalkDir;
+use gtk::{
+    gdk::ffi::GDK_BUTTON_PRIMARY, 
+    glib::{self,MainContext},
+    DropDown, 
+    FlowBox, 
+    GestureClick, 
+    Image,
+    prelude::*,
+};
 use std::{
     fs::{read_dir, remove_file},
     io::Error,
     path::{Path, PathBuf},
     process::Command,
-    sync::{Arc, Mutex},
+    collections::HashSet,
 };
 
 // Send command to swww
@@ -52,41 +61,35 @@ fn remove_last(config_path: &Path) {
 
 pub fn search_folder(folder_path: &str) -> Result<Vec<PathBuf>, Error> {
     // List of file extensions to search for
-    let file_extensions = vec![
+    let file_extensions: HashSet<&str> = [
         "png", "jpg", "jpeg", "gif", "pnm", "tga", "tiff", "webp", "bmp",
-    ];
+    ]
+    .iter()
+    .cloned()
+    .collect();
 
-    let entries = Arc::new(Mutex::new(Vec::new()));
-
-    // Read the contents of the folder
-    let folder_entries = read_dir(folder_path)?;
-
-    // Parallelize the search of image files
-    folder_entries.par_bridge().for_each(|entry_result| {
-        if let Ok(entry) = entry_result {
-            let entry_path = entry.path();
-
-            // Check if the entry is a file or a subfolder
-            if entry_path.is_file() {
-                if file_extensions
-                    .par_iter()
-                    .any(|&ext| ext == entry_path.extension().unwrap())
-                {
-                    entries.lock().unwrap().push(entry_path);
-                }
-            } else if entry_path.is_dir() {
-                // Recursively search subfolders
-                if let Ok(subfolder_entries) = search_folder(entry_path.to_str().unwrap()) {
-                    let mut locked_entries = entries.lock().unwrap();
-                    locked_entries.extend(subfolder_entries);
+    // Recursively find files using WalkDir
+    let entries: Vec<PathBuf> = WalkDir::new(folder_path)
+        .into_iter()
+        .par_bridge()
+        .filter_map(|entry| match entry {
+            Ok(entry) if entry.file_type().is_file() => {
+                let path = entry.into_path();
+                if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
+                    if file_extensions.contains(ext) {
+                        Some(path)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
                 }
             }
-        }
-    });
+            _ => None,
+        })
+        .collect();
 
-    // Retrieve and return the results from the Arc<Mutex<Vec<PathBuf>>>
-    let result = entries.lock().unwrap();
-    Ok(result.clone())
+    Ok(entries)
 }
 
 pub fn add_images(
@@ -95,31 +98,35 @@ pub fn add_images(
     image_grid: &FlowBox,
     options: &'static [&str; 12],
 ) {
-    match search_folder(folder_location) {
-        // Use those paths to create images
-        Ok(entries) => {
-            for entry in entries {
-                let image = Image::from_file(&entry);
-                image.set_size_request(200, 200);
-
-                // Clicking on image will send a command to swww
-                let gesture = GestureClick::new();
-                gesture.set_button(GDK_BUTTON_PRIMARY as u32);
-                gesture.connect_pressed(glib::clone!(@weak transition_types => move |_, _, _, _| {
-                    swww(
-                        &entry,    // Path to file
-                        &transition_types,          // Dropdown selection
-                        *options                    // Dropdown options
-                    )
-                }));
-
-                image.add_controller(gesture); // Make sure the command is sent
-                image_grid.insert(&image, -1); // Add it to the grid
-            }
-        }
-        // Just in case
+    let context = MainContext::default();
+    let images = match search_folder(folder_location) {
+        Ok(entries) => entries,
         Err(err) => {
             eprintln!("Error: {}", err);
+            return;
         }
-    }
+    };
+    
+    context.spawn_local(glib::clone!(@strong transition_types, @strong image_grid => async move {
+        for entry in images {
+            let image_path = entry.clone();
+            let image = Image::from_file(entry.clone());
+            image.set_size_request(200, 200);
+
+            // Create gesture for click event
+            let gesture = GestureClick::new();
+            gesture.set_button(GDK_BUTTON_PRIMARY as u32);
+            gesture.connect_pressed(glib::clone!(@strong transition_types => move |_, _, _, _| {
+                swww(
+                    &image_path,
+                    &transition_types,
+                    *options,
+                );
+            }));
+
+            // Add gesture and insert image in UI
+            image.add_controller(gesture);
+            image_grid.insert(&image, -1);
+        }
+    }));
 }

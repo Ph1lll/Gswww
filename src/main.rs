@@ -1,6 +1,6 @@
 use gtk::{
     gio::File,
-    glib::{self, clone, Error, ExitCode, MainContext},
+    glib::{clone, Error, ExitCode, MainContext},
     prelude::*,
     Align, Application, ApplicationWindow, Box, Button, DropDown, FileDialog, FlowBox, HeaderBar,
     Orientation, ScrolledWindow, StringList, Window,
@@ -79,7 +79,7 @@ fn build_ui(app: &Application) {
     // Open the file dialog
     dialog_button.connect_clicked(clone!(@strong window => move |_| {
         let folder_location = MainContext::default().spawn_local(file_dialog(Rc::clone(&window)));
-        MainContext::default().spawn_local(clone!(@weak transition_types, @weak image_grid => async move {
+        MainContext::default().spawn_local(clone!(@strong transition_types, @strong image_grid => async move {
             // I want the location of the folder
             let folder_location = match folder_location.await {
                 Ok(file) => file.unwrap().path().unwrap().to_str().map(|s| s.to_string()),
