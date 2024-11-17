@@ -398,7 +398,6 @@ dependencies = [
  "directories",
  "gtk4",
  "rayon",
- "serde",
  "walkdir",
 ]
 

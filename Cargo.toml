@@ -24,5 +24,4 @@ strip = false
 directories = "5.0.1"
 gtk = { version = "0.9.3", package = "gtk4", features = ["v4_10"] }
 rayon = "1.10.0"
-serde = { version = "1.0.168", features = ["derive"] }
 walkdir = "2.5.0"

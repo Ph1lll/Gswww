@@ -12,8 +12,9 @@ mod utils;
 
 // Options for the dropdown
 const TRANSISTION_OPTIONS: [&str; 12] = [
-    "random","simple", "left", "right", "top", "bottom", "wipe", "wave", "grow", "center", "any", "outer",
-    ];
+    "random", "simple", "left", "right", "top", "bottom", "wipe", "wave", "grow", "center", "any",
+    "outer",
+];
 
 fn main() -> ExitCode {
     // Create config directory if not added
@@ -77,18 +78,39 @@ fn build_ui(app: &Application) {
     content.append(&option_box);
 
     // Open the file dialog
-    dialog_button.connect_clicked(clone!(@strong window => move |_| {
-        let folder_location = MainContext::default().spawn_local(file_dialog(Rc::clone(&window)));
-        MainContext::default().spawn_local(clone!(@strong transition_types, @strong image_grid => async move {
-            // I want the location of the folder
-            let folder_location = match folder_location.await {
-                Ok(file) => file.unwrap().path().unwrap().to_str().map(|s| s.to_string()),
-                Err(_) => None,
-            };
-            // Add images to gallery
-            utils::add_images(&folder_location.unwrap(), &transition_types, &image_grid, &TRANSISTION_OPTIONS);
-        }));
-    }));
+    dialog_button.connect_clicked(clone!(
+        #[strong]
+        window,
+        move |_| {
+            let folder_location =
+                MainContext::default().spawn_local(file_dialog(Rc::clone(&window)));
+            MainContext::default().spawn_local(clone!(
+                #[strong]
+                transition_types,
+                #[strong]
+                image_grid,
+                async move {
+                    // I want the location of the folder
+                    let folder_location = match folder_location.await {
+                        Ok(file) => file
+                            .unwrap()
+                            .path()
+                            .unwrap()
+                            .to_str()
+                            .map(|s| s.to_string()),
+                        Err(_) => None,
+                    };
+                    // Add images to gallery
+                    utils::add_images(
+                        &folder_location.unwrap(),
+                        &transition_types,
+                        &image_grid,
+                        &TRANSISTION_OPTIONS,
+                    );
+                }
+            ));
+        }
+    ));
 
     window.present();
 }

@@ -1,25 +1,20 @@
 use directories::ProjectDirs;
-use rayon::prelude::*;
-use walkdir::WalkDir;
 use gtk::{
-    gdk::ffi::GDK_BUTTON_PRIMARY, 
-    glib::{self,MainContext},
-    DropDown, 
-    FlowBox, 
-    GestureClick, 
-    Image,
-    prelude::*,
+    gdk::ffi::GDK_BUTTON_PRIMARY, glib::clone, prelude::*, DropDown, FlowBox, GestureClick, Image,
 };
+use rayon::prelude::*;
 use std::{
     fs::{read_dir, remove_file},
     io::Error,
     path::{Path, PathBuf},
     process::Command,
-    collections::HashSet,
 };
+use walkdir::WalkDir;
 
 // Send command to swww
 pub fn swww(file: &Path, transition: &DropDown, options: [&str; 12]) {
+    println!("Selected: {}", &file.to_str().unwrap());
+    println!("{:-<100}", "");
     Command::new("swww")
         .args([
             "img",
@@ -61,12 +56,9 @@ fn remove_last(config_path: &Path) {
 
 pub fn search_folder(folder_path: &str) -> Result<Vec<PathBuf>, Error> {
     // List of file extensions to search for
-    let file_extensions: HashSet<&str> = [
+    let file_extensions: [&str; 9] = [
         "png", "jpg", "jpeg", "gif", "pnm", "tga", "tiff", "webp", "bmp",
-    ]
-    .iter()
-    .cloned()
-    .collect();
+    ];
 
     // Recursively find files using WalkDir
     let entries: Vec<PathBuf> = WalkDir::new(folder_path)
@@ -76,7 +68,7 @@ pub fn search_folder(folder_path: &str) -> Result<Vec<PathBuf>, Error> {
             Ok(entry) if entry.file_type().is_file() => {
                 let path = entry.into_path();
                 if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
-                    if file_extensions.contains(ext) {
+                    if file_extensions.contains(&ext) {
                         Some(path)
                     } else {
                         None
@@ -98,7 +90,7 @@ pub fn add_images(
     image_grid: &FlowBox,
     options: &'static [&str; 12],
 ) {
-    let context = MainContext::default();
+    // let context = MainContext::default();
     let images = match search_folder(folder_location) {
         Ok(entries) => entries,
         Err(err) => {
@@ -106,27 +98,26 @@ pub fn add_images(
             return;
         }
     };
-    
-    context.spawn_local(glib::clone!(@strong transition_types, @strong image_grid => async move {
-        for entry in images {
-            let image_path = entry.clone();
-            let image = Image::from_file(entry.clone());
-            image.set_size_request(200, 200);
 
-            // Create gesture for click event
-            let gesture = GestureClick::new();
-            gesture.set_button(GDK_BUTTON_PRIMARY as u32);
-            gesture.connect_pressed(glib::clone!(@strong transition_types => move |_, _, _, _| {
-                swww(
-                    &image_path,
-                    &transition_types,
-                    *options,
-                );
-            }));
+    for entry in images.clone() {
+        println!("Added: {}", &entry.to_str().unwrap());
+        let image = Image::from_file(&entry);
+        image.set_size_request(200, 200);
 
-            // Add gesture and insert image in UI
-            image.add_controller(gesture);
-            image_grid.insert(&image, -1);
-        }
-    }));
+        // Create gesture for click event
+        let gesture = GestureClick::new();
+        gesture.set_button(GDK_BUTTON_PRIMARY as u32);
+        gesture.connect_pressed(clone!(
+            #[strong]
+            transition_types,
+            move |_, _, _, _| {
+                swww(&entry, &transition_types, *options);
+            }
+        ));
+
+        // Add gesture and insert image in UI
+        image.add_controller(gesture);
+        image_grid.append(&image);
+    }
+    println!("{:-<100}", "");
 }
