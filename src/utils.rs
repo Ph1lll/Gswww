@@ -54,14 +54,17 @@ fn remove_last(config_path: &Path) {
     }
 }
 
-pub fn search_folder(folder_path: &str) -> Result<Vec<PathBuf>, Error> {
+pub fn search_folder(folder_path: &str, recursive: &bool) -> Result<Vec<PathBuf>, Error> {
     // List of file extensions to search for
     let file_extensions: [&str; 9] = [
         "png", "jpg", "jpeg", "gif", "pnm", "tga", "tiff", "webp", "bmp",
     ];
 
+    let depth = if !recursive { 1 } else { 5 };
+
     // Recursively find files using WalkDir
     let entries: Vec<PathBuf> = WalkDir::new(folder_path)
+        .max_depth(depth)
         .into_iter()
         .par_bridge()
         .filter_map(|entry| match entry {
@@ -86,23 +89,31 @@ pub fn search_folder(folder_path: &str) -> Result<Vec<PathBuf>, Error> {
 
 pub fn add_images(
     folder_location: &str,
+    recursively_search: &bool,
     transition_types: &DropDown,
     image_grid: &FlowBox,
     options: &'static [&str; 12],
 ) {
-    // let context = MainContext::default();
-    let images = match search_folder(folder_location) {
-        Ok(entries) => entries,
+    println!("{:-<100}", "");
+    let images = match search_folder(folder_location, recursively_search) {
+        Ok(entries) => {
+            if *recursively_search {
+                println!("Searched '{folder_location}' \n");
+            } else {
+                println!("Searched '{folder_location}' without recursion \n");
+            }
+            entries
+        }
         Err(err) => {
-            eprintln!("Error: {}", err);
+            eprintln!("Error: {err}");
             return;
         }
     };
 
-    for entry in images.clone() {
+    for entry in images {
         println!("Added: {}", &entry.to_str().unwrap());
         let image = Image::from_file(&entry);
-        image.set_size_request(200, 200);
+        image.set_size_request(200, 200); // Load and downscale image
 
         // Create gesture for click event
         let gesture = GestureClick::new();
@@ -119,5 +130,4 @@ pub fn add_images(
         image.add_controller(gesture);
         image_grid.append(&image);
     }
-    println!("{:-<100}", "");
 }
