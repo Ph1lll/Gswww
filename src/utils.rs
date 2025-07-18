@@ -1,6 +1,9 @@
 use gtk::{
-    gdk::ffi::GDK_BUTTON_PRIMARY, gdk_pixbuf::Pixbuf, glib::clone, prelude::*, DropDown, FlowBox,
-    GestureClick, Image,
+    gdk::ffi::GDK_BUTTON_PRIMARY,
+    gdk_pixbuf::{InterpType, Pixbuf, PixbufAnimation},
+    glib::clone,
+    prelude::*,
+    DropDown, FlowBox, GestureClick, Image,
 };
 use rayon::prelude::*;
 use std::{io::Error, path::PathBuf, process::Command};
@@ -86,11 +89,23 @@ pub fn add_images(
     for entry in images {
         let time_taken = std::time::Instant::now();
 
-        // New Way
-        let pixbuf = Pixbuf::from_file_at_size(&entry, 200, 200).ok();
+        // Load Image and resize it
+        let pixbuf = if entry.extension().unwrap() == "gif" {
+            let animation = PixbufAnimation::from_file(&entry).ok();
+            let frame_pixbuf = animation
+                .expect("Couldn't find static image")
+                .static_image();
+
+            // Scale the frame to be smaller (also it's 16:9)
+            frame_pixbuf
+                .unwrap()
+                .scale_simple(200, 112, InterpType::Bilinear)
+        } else {
+            Pixbuf::from_file_at_size(&entry, 200, 200).ok()
+        };
         let image = Image::from_pixbuf(pixbuf.as_ref());
 
-        image.set_size_request(200, 200); // Load and set image size
+        image.set_size_request(200, 200); // Set image size for gallery
 
         // Create gesture for click event
         let gesture = GestureClick::new();
