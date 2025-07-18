@@ -1,57 +1,30 @@
-use directories::ProjectDirs;
 use gtk::{
-    gdk::ffi::GDK_BUTTON_PRIMARY, glib::clone, prelude::*, DropDown, FlowBox, GestureClick, Image,
+    gdk::ffi::GDK_BUTTON_PRIMARY, gdk_pixbuf::Pixbuf, glib::clone, prelude::*, DropDown, FlowBox,
+    GestureClick, Image,
 };
 use rayon::prelude::*;
-use std::{
-    fs::{read_dir, remove_file},
-    io::Error,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{io::Error, path::PathBuf, process::Command};
 use walkdir::WalkDir;
 
+// Options for the dropdown
+pub const TRANSISTION_OPTIONS: [&str; 12] = [
+    "random", "simple", "left", "right", "top", "bottom", "wipe", "wave", "grow", "center", "any",
+    "outer",
+];
+
 // Send command to swww
-pub fn swww(file: &Path, transition: &DropDown, options: [&str; 12]) {
+pub fn swww(file: PathBuf, transition: &DropDown) {
     println!("Selected: {}", &file.to_str().unwrap());
     println!("{:-<100}", "");
     Command::new("swww")
         .args([
             "img",
             "-t",
-            options[transition.selected() as usize],
+            TRANSISTION_OPTIONS[transition.selected() as usize],
             file.to_str().unwrap(),
         ])
         .spawn()
         .expect("Failed to change background");
-    let project_dirs = ProjectDirs::from("com", "Ph1lll", "Gswww")
-        .expect("Failed to retrieve project directories.");
-
-    remove_last(project_dirs.config_dir());
-
-    let write_dir = format!(
-        "{}/last.{}",
-        project_dirs.config_dir().display(),
-        file.extension().unwrap().to_str().unwrap()
-    );
-    Command::new("cp")
-        .args([file.to_str().unwrap(), &write_dir])
-        .spawn()
-        .expect("Failed to set last image");
-}
-
-fn remove_last(config_path: &Path) {
-    let entries = read_dir(config_path).unwrap();
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if let Some(filename) = path.file_name() {
-            if let Some(filename_str) = filename.to_str() {
-                if filename_str.starts_with("last.") {
-                    let _ = remove_file(path);
-                }
-            }
-        }
-    }
 }
 
 pub fn search_folder(folder_path: &str, recursive: &bool) -> Result<Vec<PathBuf>, Error> {
@@ -92,7 +65,6 @@ pub fn add_images(
     recursively_search: &bool,
     transition_types: &DropDown,
     image_grid: &FlowBox,
-    options: &'static [&str; 12],
 ) {
     println!("{:-<100}", "");
     let images = match search_folder(folder_location, recursively_search) {
@@ -110,24 +82,39 @@ pub fn add_images(
         }
     };
 
+    let time_taken_dir = std::time::Instant::now();
     for entry in images {
-        println!("Added: {}", &entry.to_str().unwrap());
-        let image = Image::from_file(&entry);
-        image.set_size_request(200, 200); // Load and downscale image
+        let time_taken = std::time::Instant::now();
+
+        // New Way
+        let pixbuf = Pixbuf::from_file_at_size(&entry, 200, 200).ok();
+        let image = Image::from_pixbuf(pixbuf.as_ref());
+
+        image.set_size_request(200, 200); // Load and set image size
 
         // Create gesture for click event
         let gesture = GestureClick::new();
         gesture.set_button(GDK_BUTTON_PRIMARY as u32);
         gesture.connect_pressed(clone!(
             #[strong]
+            entry,
+            #[strong]
             transition_types,
             move |_, _, _, _| {
-                swww(&entry, &transition_types, *options);
+                swww(entry.clone(), &transition_types);
             }
         ));
 
         // Add gesture and insert image in UI
         image.add_controller(gesture);
         image_grid.append(&image);
+
+        // Mostly a debug line
+        println!(
+            "Added: {}, took {} ms",
+            entry.to_str().unwrap(),
+            time_taken.elapsed().as_millis()
+        );
     }
+    println!("Took {} sec for dir", time_taken_dir.elapsed().as_secs());
 }

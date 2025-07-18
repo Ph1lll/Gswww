@@ -1,6 +1,6 @@
 [package]
 name = "gswww"
-version = "1.2.0"
+version = "1.2.1"
 authors = ["Phillip Davies <philliptdavies@gmail.com>"]
 description = "A Graphical Solution to your Wayland Wallpaper Woes"
 edition = "2021"

@@ -6,12 +6,6 @@ use gtk::{
 mod config;
 mod utils;
 
-// Options for the dropdown
-const TRANSISTION_OPTIONS: [&str; 12] = [
-    "random", "simple", "left", "right", "top", "bottom", "wipe", "wave", "grow", "center", "any",
-    "outer",
-];
-
 fn main() -> glib::ExitCode {
     // Create config directory if not added
     config::config_path();
@@ -61,7 +55,7 @@ fn build_ui(app: &Application) {
     // Dropdown for transition types
     let transition_label = Label::new(Some("Transition:"));
     let transition_types = DropDown::builder()
-        .model(&StringList::new(&TRANSISTION_OPTIONS))
+        .model(&StringList::new(&utils::TRANSISTION_OPTIONS))
         .build();
     let transition_box = Box::builder()
         .halign(Align::End)
@@ -127,7 +121,6 @@ fn build_ui(app: &Application) {
                         &r_check.is_active(),
                         &transition_types,
                         &image_grid,
-                        &TRANSISTION_OPTIONS,
                     );
                 }
             });
