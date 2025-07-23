@@ -1,13 +1,15 @@
 use gtk::{
-    gdk::ffi::GDK_BUTTON_PRIMARY,
-    gdk_pixbuf::{InterpType, Pixbuf, PixbufAnimation},
-    glib::clone,
-    prelude::*,
-    DropDown, FlowBox, GestureClick, Image,
+    gdk::ffi::GDK_BUTTON_PRIMARY, glib::clone, prelude::*, DropDown, FlowBox, GestureClick, Image,
 };
 use rayon::prelude::*;
-use std::{io::Error, path::PathBuf, process::Command};
+use std::{ffi::OsString, io::Error, path::PathBuf, process::Command};
 use walkdir::WalkDir;
+
+#[derive(Clone)]
+struct Thumbnails {
+    file_path: String,
+    thumbnail: String,
+}
 
 // Options for the dropdown
 pub const TRANSISTION_OPTIONS: [&str; 12] = [
@@ -15,22 +17,82 @@ pub const TRANSISTION_OPTIONS: [&str; 12] = [
     "outer",
 ];
 
-// Send command to swww
-pub fn swww(file: PathBuf, transition: &DropDown) {
-    println!("Selected: {}", &file.to_str().unwrap());
+pub fn add_images(
+    folder_location: OsString,
+    recursively_search: &bool,
+    transition_types: &DropDown,
+    image_grid: &FlowBox,
+) {
     println!("{:-<100}", "");
-    Command::new("swww")
-        .args([
-            "img",
-            "-t",
-            TRANSISTION_OPTIONS[transition.selected() as usize],
-            file.to_str().unwrap(),
-        ])
-        .spawn()
-        .expect("Failed to change background");
+    let images = match search_folder(&folder_location, recursively_search) {
+        Ok(entries) => {
+            if *recursively_search {
+                println!("Searched '{}' \n", folder_location.into_string().unwrap());
+            } else {
+                println!(
+                    "Searched '{}' without recursion \n",
+                    folder_location.into_string().unwrap()
+                );
+            }
+            entries
+        }
+        Err(err) => {
+            eprintln!("Error: {err}");
+            return;
+        }
+    };
+
+    let time_taken_dir = std::time::Instant::now();
+
+    let thumbnails: Vec<Thumbnails> = images
+        .iter()
+        .map(|entry| {
+            let time_taken = std::time::Instant::now();
+
+            let get_thumbnail = create_thumbnail(entry);
+
+            // Mostly a debug line
+            println!(
+                "Processed: {}, took {} ms",
+                entry.to_str().unwrap(),
+                time_taken.elapsed().as_millis()
+            );
+            Thumbnails {
+                file_path: entry.to_str().unwrap().to_string(),
+                thumbnail: get_thumbnail,
+            }
+        })
+        .collect();
+
+    for entry in thumbnails {
+        let image = Image::from_file(&entry.thumbnail);
+        image.set_size_request(200, 200); // Set image size for gallery
+
+        // Create gesture for click event
+        let gesture = GestureClick::new();
+        gesture.set_button(GDK_BUTTON_PRIMARY as u32);
+        gesture.connect_pressed(clone!(
+            #[strong]
+            entry,
+            #[strong]
+            transition_types,
+            move |_, _, _, _| {
+                swww(entry.file_path.clone().into(), &transition_types);
+            }
+        ));
+
+        // Add gesture and insert image in UI
+        image.add_controller(gesture);
+        image_grid.append(&image);
+    }
+    if time_taken_dir.elapsed().as_millis() < 3000 {
+        println!("Took {} ms for dir", time_taken_dir.elapsed().as_millis());
+    } else {
+        println!("Took {} sec for dir", time_taken_dir.elapsed().as_secs());
+    }
 }
 
-pub fn search_folder(folder_path: &str, recursive: &bool) -> Result<Vec<PathBuf>, Error> {
+pub fn search_folder(folder_path: &OsString, recursive: &bool) -> Result<Vec<PathBuf>, Error> {
     // List of file extensions to search for
     let file_extensions: [&str; 9] = [
         "png", "jpg", "jpeg", "gif", "pnm", "tga", "tiff", "webp", "bmp",
@@ -63,73 +125,66 @@ pub fn search_folder(folder_path: &str, recursive: &bool) -> Result<Vec<PathBuf>
     Ok(entries)
 }
 
-pub fn add_images(
-    folder_location: &str,
-    recursively_search: &bool,
-    transition_types: &DropDown,
-    image_grid: &FlowBox,
-) {
-    println!("{:-<100}", "");
-    let images = match search_folder(folder_location, recursively_search) {
-        Ok(entries) => {
-            if *recursively_search {
-                println!("Searched '{folder_location}' \n");
-            } else {
-                println!("Searched '{folder_location}' without recursion \n");
-            }
-            entries
-        }
-        Err(err) => {
-            eprintln!("Error: {err}");
-            return;
-        }
-    };
+fn create_thumbnail(file: &PathBuf) -> String {
+    use crate::config;
 
-    let time_taken_dir = std::time::Instant::now();
-    for entry in images {
-        let time_taken = std::time::Instant::now();
+    use fast_image_resize::images::Image;
+    use fast_image_resize::{IntoImageView, Resizer};
+    use image::ImageReader;
 
-        // Load Image and resize it
-        let pixbuf = if entry.extension().unwrap() == "gif" {
-            let animation = PixbufAnimation::from_file(&entry).ok();
-            let frame_pixbuf = animation
-                .expect("Couldn't find static image")
-                .static_image();
+    let thumbnail_location = format!(
+        "{}/{}.png",
+        config::cache_path(),
+        file.file_stem().unwrap().to_str().unwrap()
+    );
 
-            // Scale the frame to be smaller (also it's 16:9)
-            frame_pixbuf
-                .unwrap()
-                .scale_simple(200, 112, InterpType::Bilinear)
-        } else {
-            Pixbuf::from_file_at_size(&entry, 200, 200).ok()
-        };
-        let image = Image::from_pixbuf(pixbuf.as_ref());
+    if !std::path::Path::new(&thumbnail_location).exists() {
+        println!("Creating thumbnail at: {thumbnail_location}");
 
-        image.set_size_request(200, 200); // Set image size for gallery
+        // Read source image from file
+        let src_image = ImageReader::open(file)
+            .expect("Failed to open file")
+            .with_guessed_format()
+            .unwrap()
+            .decode()
+            .unwrap();
 
-        // Create gesture for click event
-        let gesture = GestureClick::new();
-        gesture.set_button(GDK_BUTTON_PRIMARY as u32);
-        gesture.connect_pressed(clone!(
-            #[strong]
-            entry,
-            #[strong]
-            transition_types,
-            move |_, _, _, _| {
-                swww(entry.clone(), &transition_types);
-            }
-        ));
+        // Create container for data of destination image
+        let dst_width: u32 = 200;
+        let dst_height: u32 = 112;
+        let mut dst_image = Image::new(dst_width, dst_height, src_image.pixel_type().unwrap());
 
-        // Add gesture and insert image in UI
-        image.add_controller(gesture);
-        image_grid.append(&image);
+        // Create Resizer instance and resize source image
+        // into buffer of destination image
+        let mut resizer = Resizer::new();
+        resizer.resize(&src_image, &mut dst_image, None).unwrap();
 
-        // Mostly a debug line
-        println!(
-            "Added: {}, took {} ms",
-            entry.to_str().unwrap(),
-            time_taken.elapsed().as_millis()
+        // Write destination image as a PNG
+        let _ = image::save_buffer(
+            std::path::Path::new(&thumbnail_location),
+            dst_image.buffer(),
+            dst_width,
+            dst_height,
+            src_image.color(),
         );
+    } else {
+        println!("Hit Cache!");
     }
-    println!("Took {} sec for dir", time_taken_dir.elapsed().as_secs());
+
+    thumbnail_location
+}
+
+// Send command to swww
+pub fn swww(file: PathBuf, transition: &DropDown) {
+    println!("Selected: {}", &file.to_str().unwrap());
+    println!("{:-<100}", "");
+    Command::new("swww")
+        .args([
+            "img",
+            "-t",
+            TRANSISTION_OPTIONS[transition.selected() as usize],
+            file.to_str().unwrap(),
+        ])
+        .spawn()
+        .expect("Failed to change background");
 }

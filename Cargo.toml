@@ -1,6 +1,6 @@
 [package]
 name = "gswww"
-version = "1.2.1"
+version = "1.2.2"
 authors = ["Phillip Davies <philliptdavies@gmail.com>"]
 description = "A Graphical Solution to your Wayland Wallpaper Woes"
 edition = "2021"
@@ -21,7 +21,11 @@ debug = 1
 strip = false
 
 [dependencies]
-directories = "6.0.0"
 gtk = { version = "0.9.7", package = "gtk4", features = ["v4_10"] }
 rayon = "1.10.0"
+# Image manipulation
+fast_image_resize = { version = "5.2.0", features = ["image"] }
+image = "0.25.6"
+# Directory reading
 walkdir = "2.5.0"
+directories = "6.0.0"

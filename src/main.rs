@@ -1,7 +1,9 @@
 use gtk::{
-    glib, prelude::*, Align, Application, ApplicationWindow, Box, Button, DropDown, FileDialog,
-    FlowBox, HeaderBar, Label, Orientation, ScrolledWindow, StringList, Switch,
+    gio::ApplicationFlags, glib, prelude::*, Align, Application, ApplicationWindow, Box, Button,
+    DropDown, FileDialog, FlowBox, HeaderBar, Label, Orientation, ScrolledWindow, StringList,
+    Switch,
 };
+use std::ffi::OsString;
 
 mod config;
 mod utils;
@@ -12,13 +14,24 @@ fn main() -> glib::ExitCode {
     // Create the GTK app
     let app = Application::builder()
         .application_id("com.github.Ph1lll.Gswww")
+        .flags(ApplicationFlags::HANDLES_OPEN)
         .build();
 
-    app.connect_activate(build_ui);
+    app.connect_activate(|app| build_ui(app, None));
+    app.connect_open(|app, files, _hint| {
+        // Get the first file/folder path (you might want to handle multiple)
+        if let Some(file) = files.first() {
+            if let Some(path) = file.path() {
+                if path.is_dir() {
+                    build_ui(app, Some(path.into_os_string()));
+                }
+            }
+        }
+    });
     app.run()
 }
 
-fn build_ui(app: &Application) {
+fn build_ui(app: &Application, folder_path: Option<OsString>) {
     let content = Box::new(Orientation::Vertical, 0);
 
     let image_grid = FlowBox::new(); // Allows to change the rows and columns depending on the size of the window
@@ -108,24 +121,21 @@ fn build_ui(app: &Application) {
 
             dialog.select_folder(Some(&window), gtk::gio::Cancellable::NONE, move |folder| {
                 if let Ok(folder) = folder {
-                    let folder = folder
-                        .path()
-                        .unwrap()
-                        .to_str()
-                        .map(|s| s.to_string())
-                        .unwrap();
+                    let folder = folder.path().unwrap().into_os_string();
 
                     // Add images to gallery
-                    utils::add_images(
-                        &folder,
-                        &r_check.is_active(),
-                        &transition_types,
-                        &image_grid,
-                    );
+                    utils::add_images(folder, &r_check.is_active(), &transition_types, &image_grid);
                 }
             });
         }
     ));
+
+    // If we have someone putting folders as arguments when we can just launch with the images already
+    if let Some(folder) = folder_path {
+        println!("{:-<100}", "");
+        println!("Opening folder: {:#?}", folder);
+        utils::add_images(folder, &r_check.is_active(), &transition_types, &image_grid);
+    }
 
     window.present();
 }
