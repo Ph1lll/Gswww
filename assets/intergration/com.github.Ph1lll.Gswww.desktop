@@ -1,8 +1,10 @@
 [Desktop Entry]
 Name=Gswww
-Exec=gswww
-Terminal=false
-Type=Application
-Icon=com.github.Ph1lll.Gswww
+Exec=gswww %F
 Comment=Your Graphical Solution to your Wayland Wallpaper Woes
+Icon=com.github.Ph1lll.Gswww
+
+Type=Application
+MimeType=inode/directory;
 Categories=Utility;
+Terminal=false
