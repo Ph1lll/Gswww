@@ -317,6 +317,7 @@ dependencies = [
  "document-features",
  "image",
  "num-traits",
+ "rayon",
  "thiserror 1.0.69",
 ]
 
@@ -643,7 +644,7 @@ dependencies = [
 
 [[package]]
 name = "gswww"
-version = "1.2.2"
+version = "1.2.3"
 dependencies = [
  "directories",
  "fast_image_resize",

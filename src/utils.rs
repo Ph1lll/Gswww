@@ -134,9 +134,10 @@ fn create_thumbnail(file: &PathBuf, cache_location: &str) -> String {
     use image::ImageReader;
 
     let thumbnail_location = format!(
-        "{}/{}.png",
-        cache_location,
-        file.file_name().unwrap().to_str().unwrap()
+        "{}/{}_{}.png",
+        cache_location,                              // Cache folder
+        file.file_stem().unwrap().to_str().unwrap(), // File name (excluding extension)
+        file.extension().unwrap().to_str().unwrap()  // File extension
     );
 
     if !std::path::Path::new(&thumbnail_location).exists() {
