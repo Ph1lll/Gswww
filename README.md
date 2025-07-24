@@ -7,7 +7,6 @@
 + [swww](https://github.com/LGFae/swww)
 + GTK4
 + Up to date rustc compiler and cargo
-+ webp-pixbuf-loader (optional: to view .webp images)
 
 ## Build
 ### Automatic
@@ -51,8 +50,7 @@ exec-once = swww-daemon
     + webp
     + pnm
     + bmp
-    + farbfeld (Not supported in Gswww)
-+ Clear the screen with a rrggbb colour
+    + farbfeld
 + Smooth transition effect when you switch images
 + Doing it all without having to pkill the daemon
 
