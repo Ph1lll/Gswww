@@ -23,6 +23,7 @@ pub fn add_images(
     transition_types: &DropDown,
     image_grid: &FlowBox,
 ) {
+    use std::time::Instant;
     println!("{:-<100}", "");
     let images = match search_folder(&folder_location, recursively_search) {
         Ok(entries) => {
@@ -42,14 +43,16 @@ pub fn add_images(
         }
     };
 
-    let time_taken_dir = std::time::Instant::now();
+    let time_taken_dir = Instant::now();
+
+    let cache_location = crate::config::cache_path();
 
     let thumbnails: Vec<Thumbnails> = images
-        .iter()
+        .par_iter()
         .map(|entry| {
-            let time_taken = std::time::Instant::now();
+            let time_taken = Instant::now();
 
-            let get_thumbnail = create_thumbnail(entry);
+            let get_thumbnail = create_thumbnail(entry, &cache_location);
 
             // Mostly a debug line
             println!(
@@ -125,17 +128,15 @@ pub fn search_folder(folder_path: &OsString, recursive: &bool) -> Result<Vec<Pat
     Ok(entries)
 }
 
-fn create_thumbnail(file: &PathBuf) -> String {
-    use crate::config;
-
+fn create_thumbnail(file: &PathBuf, cache_location: &str) -> String {
     use fast_image_resize::images::Image;
     use fast_image_resize::{IntoImageView, Resizer};
     use image::ImageReader;
 
     let thumbnail_location = format!(
         "{}/{}.png",
-        config::cache_path(),
-        file.file_stem().unwrap().to_str().unwrap()
+        cache_location,
+        file.file_name().unwrap().to_str().unwrap()
     );
 
     if !std::path::Path::new(&thumbnail_location).exists() {

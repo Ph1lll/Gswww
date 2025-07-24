@@ -17,7 +17,7 @@ pub fn cache_path() -> String {
     let cache_dir = project_dirs.cache_dir();
 
     if !cache_dir.exists() {
-        create_dir(cache_dir).expect("Failed to create config directory.");
+        create_dir(cache_dir).expect("Failed to create config directory");
     }
     cache_dir.as_os_str().to_str().unwrap().to_string()
 }
