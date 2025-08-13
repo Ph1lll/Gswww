@@ -1,110 +1,23 @@
-use gtk::{
-    gdk::ffi::GDK_BUTTON_PRIMARY, glib::clone, prelude::*, DropDown, FlowBox, GestureClick, Image,
-};
 use rayon::prelude::*;
-use std::{ffi::OsString, io::Error, path::PathBuf, process::Command};
+use std::{ffi::OsString, path::PathBuf};
 use walkdir::WalkDir;
 
-#[derive(Clone)]
-struct Thumbnails {
-    file_path: String,
-    thumbnail: String,
-}
-
-// Options for the dropdown
-pub const TRANSISTION_OPTIONS: [&str; 12] = [
-    "random", "simple", "left", "right", "top", "bottom", "wipe", "wave", "grow", "center", "any",
-    "outer",
+// List of file extensions to search for
+const FILE_EXTENSIONS: [&str; 9] = [
+    "png", "jpg", "jpeg", "gif", "pnm", "tga", "tiff", "webp", "bmp",
 ];
 
-pub fn add_images(
-    folder_location: OsString,
-    recursively_search: &bool,
-    transition_types: &DropDown,
-    image_grid: &FlowBox,
-) {
-    use std::time::Instant;
-    println!("{:-<100}", "");
-    let images = match search_folder(&folder_location, recursively_search) {
-        Ok(entries) => {
-            if *recursively_search {
-                println!("Searched '{}' \n", folder_location.into_string().unwrap());
-            } else {
-                println!(
-                    "Searched '{}' without recursion \n",
-                    folder_location.into_string().unwrap()
-                );
-            }
-            entries
-        }
-        Err(err) => {
-            eprintln!("Error: {err}");
-            return;
-        }
-    };
-
-    let time_taken_dir = Instant::now();
-
-    let cache_location = crate::config::cache_path();
-
-    let thumbnails: Vec<Thumbnails> = images
-        .par_iter()
-        .map(|entry| {
-            let time_taken = Instant::now();
-
-            let get_thumbnail = create_thumbnail(entry, &cache_location);
-
-            // Mostly a debug line
-            println!(
-                "Processed: {}, took {} ms",
-                entry.to_str().unwrap(),
-                time_taken.elapsed().as_millis()
-            );
-            Thumbnails {
-                file_path: entry.to_str().unwrap().to_string(),
-                thumbnail: get_thumbnail,
-            }
-        })
-        .collect();
-
-    for entry in thumbnails {
-        let image = Image::from_file(&entry.thumbnail);
-        image.set_size_request(200, 200); // Set image size for gallery
-
-        // Create gesture for click event
-        let gesture = GestureClick::new();
-        gesture.set_button(GDK_BUTTON_PRIMARY as u32);
-        gesture.connect_pressed(clone!(
-            #[strong]
-            entry,
-            #[strong]
-            transition_types,
-            move |_, _, _, _| {
-                swww(entry.file_path.clone().into(), &transition_types);
-            }
-        ));
-
-        // Add gesture and insert image in UI
-        image.add_controller(gesture);
-        image_grid.append(&image);
-    }
-    if time_taken_dir.elapsed().as_millis() < 3000 {
-        println!("Took {} ms for dir", time_taken_dir.elapsed().as_millis());
-    } else {
-        println!("Took {} sec for dir", time_taken_dir.elapsed().as_secs());
-    }
+#[derive(Clone)]
+pub struct Thumbnail {
+    pub image_path: String,
+    pub thumbnail_path: String,
 }
 
-pub fn search_folder(folder_path: &OsString, recursive: &bool) -> Result<Vec<PathBuf>, Error> {
-    // List of file extensions to search for
-    let file_extensions: [&str; 9] = [
-        "png", "jpg", "jpeg", "gif", "pnm", "tga", "tiff", "webp", "bmp",
-    ];
-
+pub fn get_thumbnails(folder_path: OsString, recursive: &bool) -> Vec<Thumbnail> {
+    let cache_location = crate::config::cache_path();
     let depth = if !recursive { 1 } else { 5 };
 
-    // Recursively find files using WalkDir
-    let entries: Vec<PathBuf> = WalkDir::new(folder_path)
+    WalkDir::new(folder_path)
         .max_depth(depth)
         .into_iter()
         .par_bridge()
@@ -112,8 +25,13 @@ pub fn search_folder(folder_path: &OsString, recursive: &bool) -> Result<Vec<Pat
             Ok(entry) if entry.file_type().is_file() => {
                 let path = entry.into_path();
                 if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
-                    if file_extensions.contains(&ext) {
-                        Some(path)
+                    if FILE_EXTENSIONS.contains(&ext) {
+                        let thumbnail_path = create_thumbnail(&path, &cache_location);
+
+                        Some(Thumbnail {
+                            image_path: path.to_str().unwrap().to_string(),
+                            thumbnail_path,
+                        })
                     } else {
                         None
                     }
@@ -123,33 +41,27 @@ pub fn search_folder(folder_path: &OsString, recursive: &bool) -> Result<Vec<Pat
             }
             _ => None,
         })
-        .collect();
-
-    Ok(entries)
+        .collect()
 }
 
 fn create_thumbnail(file: &PathBuf, cache_location: &str) -> String {
     use fast_image_resize::images::Image;
     use fast_image_resize::{IntoImageView, Resizer};
-    use image::ImageReader;
+    use image::ImageReader; // Read source image from file
+    use xxhash_rust::xxh3::xxh3_64; // Source Image to a unique hash for cache
 
-    let thumbnail_location = format!(
-        "{}/{}_{}.png",
-        cache_location,                              // Cache folder
-        file.file_stem().unwrap().to_str().unwrap(), // File name (excluding extension)
-        file.extension().unwrap().to_str().unwrap()  // File extension
-    );
+    let src_image = ImageReader::open(file)
+        .expect("Failed to open file")
+        .with_guessed_format()
+        .unwrap()
+        .decode()
+        .unwrap();
+
+    let image_hash = xxh3_64(src_image.as_bytes());
+    let thumbnail_location = format!("{cache_location}/{image_hash}.png");
 
     if !std::path::Path::new(&thumbnail_location).exists() {
         println!("Creating thumbnail at: {thumbnail_location}");
-
-        // Read source image from file
-        let src_image = ImageReader::open(file)
-            .expect("Failed to open file")
-            .with_guessed_format()
-            .unwrap()
-            .decode()
-            .unwrap();
 
         // Create container for data of destination image
         let dst_width: u32 = 200;
@@ -174,19 +86,4 @@ fn create_thumbnail(file: &PathBuf, cache_location: &str) -> String {
     }
 
     thumbnail_location
-}
-
-// Send command to swww
-pub fn swww(file: PathBuf, transition: &DropDown) {
-    println!("Selected: {}", &file.to_str().unwrap());
-    println!("{:-<100}", "");
-    Command::new("swww")
-        .args([
-            "img",
-            "-t",
-            TRANSISTION_OPTIONS[transition.selected() as usize],
-            file.to_str().unwrap(),
-        ])
-        .spawn()
-        .expect("Failed to change background");
 }

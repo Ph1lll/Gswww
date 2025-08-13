@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Gswww
-Exec=gswww %F
+Exec=gswww
 Comment=Your Graphical Solution to your Wayland Wallpaper Woes
 Icon=com.github.Ph1lll.Gswww
 

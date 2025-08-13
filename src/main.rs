@@ -1,12 +1,18 @@
 use gtk::{
     gio::ApplicationFlags, glib, prelude::*, Align, Application, ApplicationWindow, Box, Button,
-    DropDown, FileDialog, FlowBox, HeaderBar, Label, Orientation, ScrolledWindow, StringList,
-    Switch,
+    DropDown, FileDialog, FlowBox, HeaderBar, Image, Label, Orientation, ScrolledWindow,
+    StringList, Switch,
 };
 use std::ffi::OsString;
 
 mod config;
 mod utils;
+
+// Options for the dropdown
+const TRANSISTION_OPTIONS: [&str; 12] = [
+    "random", "simple", "left", "right", "top", "bottom", "wipe", "wave", "grow", "center", "any",
+    "outer",
+];
 
 fn main() -> glib::ExitCode {
     // Create config directory if not added
@@ -68,7 +74,7 @@ fn build_ui(app: &Application, folder_path: Option<OsString>) {
     // Dropdown for transition types
     let transition_label = Label::new(Some("Transition:"));
     let transition_types = DropDown::builder()
-        .model(&StringList::new(&utils::TRANSISTION_OPTIONS))
+        .model(&StringList::new(&TRANSISTION_OPTIONS))
         .build();
     let transition_box = Box::builder()
         .halign(Align::End)
@@ -103,7 +109,8 @@ fn build_ui(app: &Application, folder_path: Option<OsString>) {
     content.append(&gallery);
     content.append(&option_box);
 
-    // Open the file dialog
+    println!("{:-<100}", ""); // Here because I hate gtk's warning messages about theming
+                              // Open the file dialog
     dialog_button.connect_clicked(glib::clone!(
         #[weak]
         window,
@@ -122,20 +129,67 @@ fn build_ui(app: &Application, folder_path: Option<OsString>) {
             dialog.select_folder(Some(&window), gtk::gio::Cancellable::NONE, move |folder| {
                 if let Ok(folder) = folder {
                     let folder = folder.path().unwrap().into_os_string();
-
-                    // Add images to gallery
-                    utils::add_images(folder, &r_check.is_active(), &transition_types, &image_grid);
-                }
+                    add_to_gallery(folder, &r_check.is_active(), &transition_types, &image_grid);
+                };
             });
         }
     ));
 
     // If we have someone putting folders as arguments when we can just launch with the images already
     if let Some(folder) = folder_path {
-        println!("{:-<100}", "");
-        println!("Opening folder: {:#?}", folder);
-        utils::add_images(folder, &r_check.is_active(), &transition_types, &image_grid);
+        add_to_gallery(folder, &r_check.is_active(), &transition_types, &image_grid);
     }
 
     window.present();
+}
+
+fn add_to_gallery(
+    folder: OsString,
+    recursively_search: &bool,
+    transition_types: &DropDown,
+    image_grid: &FlowBox,
+) {
+    let time_taken_dir = std::time::Instant::now();
+    println!("Opening folder: {}", &folder.to_str().unwrap());
+    println!("{:-<100}", "");
+    let thumbnails = utils::get_thumbnails(folder, recursively_search);
+
+    for entry in thumbnails {
+        let image = Image::from_file(&entry.thumbnail_path);
+        image.set_size_request(200, 200); // Set image size for gallery
+
+        // Create gesture for click event
+        let gesture = gtk::GestureClick::new();
+        gesture.set_button(gtk::gdk::ffi::GDK_BUTTON_PRIMARY as u32);
+        gesture.connect_pressed(glib::clone!(
+            #[strong]
+            transition_types,
+            move |_, _, _, _| {
+                swww(entry.image_path.clone(), &transition_types);
+            }
+        ));
+
+        // Add gesture and insert image in UI
+        image.add_controller(gesture);
+        image_grid.append(&image);
+    }
+    println!("{:-<100}", "");
+    println!("Took {} ms for dir", time_taken_dir.elapsed().as_millis());
+    println!("{:-<100}", "");
+}
+
+// Send command to swww
+fn swww(file: String, transition: &DropDown) {
+    println!("Selected: {file}");
+    println!("{:-<100}", "");
+    let _ = std::process::Command::new("swww")
+        .args([
+            "img",
+            "-t",
+            TRANSISTION_OPTIONS[transition.selected() as usize],
+            file.as_str(),
+        ])
+        .spawn()
+        .expect("Failed to change background")
+        .wait();
 }
