@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Gswww
+Comment=A Graphical Solution to your Wayland Wallpaper Woes
+Exec=gswww
+Icon=Gswww
+Keywords=Wallpaper
+Categories=gtk;Utility;Graphics;System
+SingleMainWindow=true
+Terminal=false
+MimeType=inode/directory;

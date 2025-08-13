@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Open with Gswww
+Comment=Open your whole folder with Gswww
+Exec=gswww %U
+Icon=Gswww
+Keywords=Wallpaper
+Categories=gtk;Utility;Graphics;System
+SingleMainWindow=true
+Terminal=false
+NoDisplay=true
+MimeType=inode/directory;
